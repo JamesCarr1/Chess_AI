@@ -57,3 +57,17 @@ Chess_AI/
 ## **utils.py**
 
 - Contains various other functions useful for the model
+
+# Plan for AI:
+
+## Basic AI
+
+- Create basic position evaluator, using LiChess match data.
+- Perform tree search on each position, to find valid moves.
+- Train this model (i.e the position evaluator) against itself(?) to improve.
+
+# Advanced AI
+
+- Create basic position evaluator, using Lichess match data.
+- Perform tree search on each position. Use neural network to predict bad moves and ignore in tree search.
+- Train this model against itself.
