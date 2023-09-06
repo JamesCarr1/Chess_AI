@@ -2,12 +2,13 @@ import chess
 
 class MoveTree():
     """A tree containing all possible moves up to a certain depth"""
-    def __init__(self, move):
+    def __init__(self, move, parent=None):
         self.move = move
         self.nodes = []
+        self.parent = parent
 
     def add_node(self, move):
-        self.nodes.append(MoveTree(move))
+        self.nodes.append(MoveTree(move, parent=self))
     
     def __repr__(self):
         return f"MoveTree({self.move}): {self.nodes}"
@@ -16,6 +17,17 @@ class MoveTree():
         # If nodes list is empty, return true.
         # bool of an empty list == false, so return not bool(list)
         return not bool(self.nodes)
+    
+    def get_path(self):
+        """
+        Returns the path of moves up to this move
+        """
+        path = [self.move] # initialise list with last (current) move
+        parent = self.parent # get parent move
+        while parent is not None:
+            path.insert(0, parent.move) # insert previous move at front of list
+            parent = parent.parent # update the parent
+        return path
 
 # Generates games given two models
 
@@ -69,4 +81,4 @@ if __name__ == '__main__':
         # Return back to original position
         game.pop()
     
-    print(moves_tree.nodes[0])
+    print(moves_tree.nodes[0].nodes[1].print_path())
