@@ -29,6 +29,21 @@ class MoveTree():
             parent = parent.parent # update the parent
         return path
 
+class ChessGame():
+    """
+    Contains the information for a single chess game, including the function to search for moves up to a certain depth.
+    """
+    def __init__(self):
+        self.current_position = chess.Board() # initialise with default position
+
+    def find_possible_moves(self, depth):
+        """
+        Finds all moves up to a given depth. Returns the tree object.
+        """
+        moves_tree = MoveTree('Start')
+        for moves_since_start in range(depth * 2):
+            print("NEED TO FINISH")
+
 # Generates games given two models
 
 def generate_games(model, base_model, depth, batch_size):
