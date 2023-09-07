@@ -29,6 +29,38 @@ class MoveTree():
             parent = parent.parent # update the parent
         return path
 
+class TestTree():
+    """A test tree for testing find_possible_moves in ChessGame class."""
+    def __init__(self, move, parent=None):
+        self.move = move
+        self.next_moves = []
+        self.parent = parent
+
+    def add_node(self, move):
+        self.next_moves.append(TestTree(move, parent=self))
+    
+    def __repr__(self):
+        return f"MoveTree({self.move}): {self.next_moves}"
+    
+    def is_leaf(self):
+        # If nodes list is empty, return true.
+        # bool of an empty list == false, so return not bool(list)
+        return not bool(self.next_moves)
+    
+    def legal_moves(self):
+        return [0, 1]
+
+    def get_path(self):
+        """
+        Returns the path of moves up to this move
+        """
+        path = [self.move] # initialise list with last (current) move
+        parent = self.parent # get parent move
+        while parent is not None:
+            path.insert(0, parent.move) # insert previous move at front of list
+            parent = parent.parent # update the parent
+        return path
+
 class ChessGame():
     """
     Contains the information for a single chess game, including the function to search for moves up to a certain depth.
@@ -36,13 +68,41 @@ class ChessGame():
     def __init__(self):
         self.current_position = chess.Board() # initialise with default position
 
-    def find_possible_moves(self, depth):
+        self.moves_tree = self.find_possible_moves(depth=3, tree=TestTree('Start'))
+
+    def find_possible_moves(self, depth, tree):
         """
         Finds all moves up to a given depth. Returns the tree object.
         """
-        moves_tree = MoveTree('Start')
-        for moves_since_start in range(depth * 2):
-            print("NEED TO FINISH")
+
+        if depth > 0:
+            # Find all the legal moves at this level and append to nodes
+            for move in tree.legal_moves():
+                tree.add_node(move)
+            # Now cycle through each node at the current level and find new nodes a level deeper
+            for new_tree in tree.next_moves:
+                self.find_possible_moves(depth-1, new_tree)
+        
+        return tree
+    
+    def get_all_paths(self, tree):
+        """Searches each element of the tree and finds if it is a leaf. If it is, add path to list"""
+        all_paths = []
+        # First, check if next_moves is empty, if so, ignore it (already a leaf)
+        if tree.is_leaf():
+            return [tree.get_path()]
+        
+        # Now cycle through each child tree of tree
+        for child_tree in tree.next_moves:
+            # If the child is a leaf, add it's path
+            if child_tree.is_leaf():
+                all_paths.append(child_tree.get_path())
+            # If the child is not a leaf, now search through the child tree
+            else:
+                 # append adds a new list in an extra dimension, but here we want to combine two lists along the SAME DIMENSION, so us +
+                all_paths += self.get_all_paths(child_tree)
+        
+        return all_paths
 
 # Generates games given two models
 
@@ -81,7 +141,7 @@ def play_game(model, base_model, depth):
 
 if __name__ == '__main__':
     #play_game(1, 1, 1)
-
+    """
     game = chess.Board()
     moves_tree = MoveTree('Start')
     for move in list(game.legal_moves):
@@ -97,3 +157,9 @@ if __name__ == '__main__':
         game.pop()
     
     print(moves_tree.nodes[0].nodes[1].print_path())
+    """
+
+    example = ChessGame()
+
+    for path in example.get_all_paths(example.moves_tree):
+        print(path)
