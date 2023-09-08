@@ -1,5 +1,6 @@
 import chess
 import torch
+import random
 
 class MoveTree():
     """A tree containing all possible moves up to a certain depth
@@ -83,10 +84,56 @@ class ChessGame():
                 all_paths.append(child_tree.get_path())
             # If the child is not a leaf, now search through the child tree
             else:
-                 # append adds a new list in an extra dimension, but here we want to combine two lists along the SAME DIMENSION, so use +
-                all_paths += self.get_all_paths(child_tree)
+                # get_all_paths returns a list, but can also return a single value in a list
+                # Even if it is just one pair, use a for loop to unpack
+                for pair in self.get_all_paths(child_tree):
+                    all_paths.append(pair)
         
         return all_paths
+
+    def get_best_evals(self, tree, model, colour, max_min=[max, min]):
+        """Searches each element of the tree and finds if it is a leaf. If it is, calculate it's evaluation and compare to others at the same depth.
+        Repeat until the best evaluation is returned.
+
+        args:
+            tree: the current MoveTree object
+            model: the model used to evaluate the moves
+            colour: 0 for max (i.e black's turn), 1 for min (i.e white's turn).
+            max_min: a list containing the two functions (max and min) used to choose an evaluated move for white and black respectively.
+                     this function assumes that the opponent will choose the best move possible to them (according to our model), which will
+                     result in them choosing the move with the lowest evaluation.
+        """
+        path_eval_pairs = [] # Contains tuples of (path, evaluation) pairs
+
+        # First 'move' in tree is 'Start' so need to fudge the colour variable slightly. i.e if colour is 0 (i.e white)
+        # Want the colour variable to look like: (move='Start', colour=1) -> (move='e4', colour=0) -> (move='e5', colour=1)
+        # Therefore, to keep abstraction, (so you can just pass in self.colour), fudge slightly:
+        colour = 1 - colour
+
+        ### First, check if next_moves is empty, if so, just return the path and evaluation
+        if tree.is_leaf():
+            path = tree.get_path()
+            return [(path, model(path))]
+        
+        ### Now cycle through each child tree of tree
+        for child_tree in tree.next_moves:
+            # If the child is a leaf, add it's path
+            if child_tree.is_leaf():
+                path = child_tree.get_path()
+                path_eval_pairs.append((path, model(path))) # add path and evaluation to list
+            # If the child is not a leaf, now search through the child tree
+            else:
+                # get_best_evals returns a list, as multiple paths can give the same evaluation.
+                # Even if it is just one pair, use a for loop to unpack
+                for pair in self.get_best_evals(child_tree, model, (1-colour), max_min): # (1 - colour) as the next move will be the other colour's turn
+                    path_eval_pairs.append(pair)
+        
+        ### Now choose (all of) the best pairs. Need to use list comprehension as there could be multiple values with the same eval.
+        # Evaluation is stored in pair[1] so find the best eval with max(path_eval_pairs, key=lambda x: x[1]) and add pair to 'best_pairs' if
+        # eval (i.e pair[1]) is the same value.
+        best_pairs = [pair for pair in path_eval_pairs if pair[1] == max_min[colour](path_eval_pairs, key=lambda x: x[1])[1]]
+
+        return best_pairs
 
 class ChessPlayer():
     """
@@ -97,9 +144,9 @@ class ChessPlayer():
         team: 0 for white, 1 for black
         game: ChessGame instance containing information about the game.
     """
-    def __init__(self, model, team, game):
+    def __init__(self, model, colour, game):
         self.model = model
-        self.team = team
+        self.colour = colour
         self.game = game
 
         self.model.train() # model will only be used in training mode
@@ -109,51 +156,33 @@ class ChessPlayer():
         Finds all possible moves at a given depth. Then evaluates each path and chooses the most favourable.
         """
         
-        ### Update move tree with depth
+        ### Update moves_tree with depth
         self.game.update_moves_tree(depth)
-        possible_paths = self.game.get_all_paths(self.game.moves_tree)
 
-        ### Now cycle through each path and evaluate it
-        path_evals = self.evaluate_paths(possible_paths)
+        ### Now cycle the tree and choose the best move. NEED TO FIX get_best_evals() to actually play moves to evaluate!
+        best_path_eval_pairs = self.game.get_best_evals(self.game.moves_tree, self.model, self.colour)
 
-        ### Now choose the move
-        
+        ### best_path_eval_pairs can contain multiple pairs, so randomly choose one
+        path, eval = random.choice(best_path_eval_pairs)
 
-    def evaluate_paths(self, paths):
-        """
-        Takes in a list of possible paths and evaluates them all
-        """
-        path_evals = []
+        ### Then choose the first move from the pair and push it
+        self.game.current_position.push(path[1]) # Remembering the first element of path is 'Start'
 
-        # Cycle through each path and evaluate it
-        for path in paths:
-            # Make all of the moves, noting that first move is 'Start', so skip it
-            for move in path[1:]:
-                self.game.push(move)
-            # Evaluate the position
-            with torch.evaluation_mode():
-                path_evals.append(self.model(self.game)) ##### NEEDS TO BE FIXED TO ACCOMODATE MODEL INPUT
-            # Undo all moves
-            for move in range(len(path) - 1):
-                self.game.pop()
+        return path, eval
 
+class TestModel(torch.nn.Module):
+    """
+    Test model to test if a game can actually be played.
+    """
+    def __init__(self):
+        super().__init__()
 
+    def forward(self, path):
+        # Just randomly chooses a move
+        return random.randint(0, 100)
 
 
 # Generates games given two models
-
-def generate_games(model, base_model, depth, batch_size):
-    """
-    Takes in two models and plays a number of games against each other, returning the moves of each game.
-    
-    args:
-        model: the model to be trained
-        base_model: the model trained against
-        depth: how far the model searches to evaluate positions
-        batch_size: number of games played
-    returns:
-        games: a list of movetext files, including all info from the game.
-    """
 
 def play_game(model, base_model, depth):
     """
@@ -166,14 +195,23 @@ def play_game(model, base_model, depth):
     returns:
         game_moves: a movetext including all moves
     """
-    game = chess.Board()
+    # Setup game board
+    game = ChessGame()
 
-    # Whilst the game is still going
-    while game.outcome() is None:
-        # Generate all possible legal moves
-        depth_1_moves = game.legal_moves
-        print(list(depth_1_moves))
-        break
+    # Setup players
+    white_model = TestModel()
+    black_model = TestModel()
+
+    white = ChessPlayer(white_model, 0, game)
+    black = ChessPlayer(black_model, 1, game)
+
+    for i in range(10):
+        # Both players make a move
+        white_path, white_eval = white.choose_move(depth=0.5)
+        black_path, black_eval = black.choose_move(depth=0.5)
+
+        # Print the moves
+        print(f'{i+1}. {white_path[1]} ({white_eval})  {black_path[1]} ({black_eval})')
 
 if __name__ == '__main__':
     #play_game(1, 1, 1)
@@ -195,8 +233,4 @@ if __name__ == '__main__':
     print(moves_tree.nodes[0].nodes[1].print_path())
     """
 
-    # Initialise ChessGame and ChessPlayers
-    chess_game = ChessGame()
-    player_0 = ChessPlayer(1, 0, chess_game)
-
-    player_0.choose_move(depth=1)
+    play_game(1, 1, 1)
