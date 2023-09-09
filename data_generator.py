@@ -122,23 +122,18 @@ class ChessGame():
             if child_tree.is_leaf():
                 path = child_tree.get_path()
                 path_eval_pairs.append((path, model(self.current_position.as_tensor()))) # add path and evaluation to list
-                #print(path_eval_pairs[-1])
             # If the child is not a leaf, now search through the child tree
             else:
                 # get_best_evals returns a list, as multiple paths can give the same evaluation.
                 # Even if it is just one pair, use a for loop to unpack
                 for pair in self.get_best_evals(child_tree, model, 1-colour, max_min): # (1 - colour) as the next move will be the other colour's turn
                     path_eval_pairs.append(pair)
-                    #print(pair)
 
             self.current_position.pop() # unmake the move (required for evaluation)
         
         ### Now choose (all of) the best pairs. Need to use list comprehension as there could be multiple values with the same eval.
         # Evaluation is stored in pair[1] so find the best eval with max(path_eval_pairs, key=lambda x: x[1]) and add pair to 'best_pairs' if
         # eval (i.e pair[1]) is the same value.
-        if tree.move == 'Start':
-            for pair in path_eval_pairs:
-                print(pair)
         best_pairs = [pair for pair in path_eval_pairs if pair[1] == max_min[colour](path_eval_pairs, key=lambda x: x[1])[1]]
 
         return best_pairs
@@ -306,7 +301,6 @@ def play_against_model(model, depth):
 
         # Print move info
         print(f'{i+1}. {white_path[1]} ({white_eval}) {move}')
-        print(model(game.current_position.as_tensor()))
 
 if __name__ == '__main__':
 
