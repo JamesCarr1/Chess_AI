@@ -2,6 +2,8 @@ import chess
 import torch
 import random
 
+import variables
+
 class MoveTree():
     """A tree containing all possible moves up to a certain depth
     
@@ -181,6 +183,75 @@ class TestModel(torch.nn.Module):
         # Just randomly chooses a move
         return random.randint(0, 100)
 
+class TensorBoard(chess.Board):
+    """
+    Extension of chess.Board class that also has the capability of converting the current position to a tensor.
+    """
+    def __init__(self):
+        super().__init__()
+
+    def as_tensor(self):
+        """
+        Returns a flattened tensor representation of the board.
+
+        returns:
+            board_as_tensor: a 70 length vector. Indices 0-63 correspond to the current board position.
+                             index 64 corresponds to the turn (i.e white=0, black=1)
+                             index 65, 66, 67 and 68 indicate whether white and black can castle king and queenside respectively, 1 for true, 0 for false.
+                             index 69 indicates if en-passant is legal and if so, which square. -1 indicates no en-passant possible 
+        """
+        fen = self.fen(promoted=False)
+        board_position, turn, castling_rights, ep_square = fen.split(' ')[:-2]
+
+        ### Format the board position
+        for i in range(8):
+            board_position = board_position.replace(str(i+1), ''.join(['0' for _ in range(i+1)])) # Replace all integers with that many 0s
+        board_position = list(board_position.replace('/', '')) # remove the slashes from board_position
+        board_position = list(map(self.fen_to_number, board_position)) # now convert FEN letters to my integer representation (see variables.py)
+
+        ### Format the turn
+        turn = [0 if turn == 'w' else 0]
+
+        ### Format the castling_rights
+        castle_check = ['K', 'Q', 'k', 'q']
+        # Check if 'castling_rights' contains 'K' etc. If so, add 1 to list, else 0
+        castling_rights = [int(castling_rights.__contains__(check_letter)) for check_letter in castle_check]
+
+        ### Format the en-passant
+        # En-passant is in the form '-' if false and the square (e.g e6) if true
+        ep_square = 'e6'
+        ep_square = [-1 if ep_square == '-' else self.convert_square_to_index(ep_square)]
+
+        ### Concatenate them all. All lists so can just use +
+        combined = board_position + turn + castling_rights + ep_square
+
+        return torch.tensor(combined)
+
+    
+    def fen_to_number(self, char: str):
+        """
+        Converts a fen value e.g [P, R, N, Q] into my number representation e.g [1, 4, 2, 5]
+        """
+        if char.isdigit(): # i.e if it just represents a number of empty squares
+            return int(char)
+
+        # If not, translate
+        return variables.fen_number_translation[char]
+
+    def convert_square_to_index(self, square):
+        """
+        Takes a square in algebraic notation (e.g e6) and converts it to an index from 0 to 63
+        """
+        # Split the square into a file and a rank
+        file, rank = list(square)
+        
+        # Convert file to a number
+        file = variables.file_to_number[file]
+
+        # Now convert to an index. The FEN representation puts a1 at the END of the list, so keep that representation
+        # Therefore, 'a8' is index 0, 'h8' is index 7, 'h1' is index 63.
+
+        return 8 * (8 - int(rank) ) + file - 1
 
 # Generates games given two models
 
@@ -233,4 +304,7 @@ if __name__ == '__main__':
     print(moves_tree.nodes[0].nodes[1].print_path())
     """
 
-    play_game(1, 1, 1)
+    #play_game(1, 1, 1)
+
+    example = TensorBoard()
+    example.as_tensor()
