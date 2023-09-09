@@ -2,6 +2,7 @@ import torch
 import random
 
 import variables
+import data_generator
 
 class BaseModel(torch.nn.Module):
     """
@@ -35,15 +36,8 @@ class RandomModel(torch.nn.Module):
 if __name__ == '__main__':
     base = BaseModel(variables.material_values)
 
-    current_position = torch.tensor([-4, -2, -3, -5, -6, -3, -2, -4, -1, -1, -1, -1, -1, -1,
-                        -1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 
-                        1, 1, 1, 1, 1, 4, 2, 3, 5, 6, 3, 2, 4, 0, 1, 1, 1, 1, 20])
-    
-    without_one_black_knight = torch.tensor([-4, 0, -3, -5, -6, -3, -2, -4, -1, -1, -1, -1, -1, -1,
-                        -1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 
-                        1, 1, 1, 1, 1, 4, 2, 3, 5, 6, 3, 2, 4, 0, 1, 1, 1, 1, 20])
-    
-    base(current_position)
-    base(without_one_black_knight)
+    test_fen = 'r2q1b1r/ppp1kppp/2np1n2/4p3/Q1P3P1/5N2/PP1PPPP1/RNB1KB1R w KQ - 1 7'
+    test_board = data_generator.TensorBoard()
+    test_board.set_fen(test_fen)
+
+    print(base(test_board.as_tensor()))
