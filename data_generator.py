@@ -48,7 +48,7 @@ class ChessGame():
         moves_tree: A MoveTree() instance that contains all of the possible moves up to a certain depth.
     """
     def __init__(self):
-        self.current_position = chess.Board() # initialise with default position
+        self.current_position = TensorBoard() # initialise with default position
         self.moves_tree = MoveTree('Start') # Just a placeholder
 
     def find_possible_moves(self, depth, tree):
@@ -115,20 +115,25 @@ class ChessGame():
         ### First, check if next_moves is empty, if so, just return the path and evaluation
         if tree.is_leaf():
             path = tree.get_path()
-            return [(path, model(path))]
+            return [(path, model(self.current_position.as_tensor()))]
         
         ### Now cycle through each child tree of tree
         for child_tree in tree.next_moves:
+
+            self.current_position.push(child_tree.move) # make the move (required for evaluation)
+
             # If the child is a leaf, add it's path
             if child_tree.is_leaf():
                 path = child_tree.get_path()
-                path_eval_pairs.append((path, model(path))) # add path and evaluation to list
+                path_eval_pairs.append((path, model(self.current_position.as_tensor()))) # add path and evaluation to list
             # If the child is not a leaf, now search through the child tree
             else:
                 # get_best_evals returns a list, as multiple paths can give the same evaluation.
                 # Even if it is just one pair, use a for loop to unpack
                 for pair in self.get_best_evals(child_tree, model, (1-colour), max_min): # (1 - colour) as the next move will be the other colour's turn
                     path_eval_pairs.append(pair)
+
+            self.current_position.pop() # unmake the move (required for evaluation)
         
         ### Now choose (all of) the best pairs. Need to use list comprehension as there could be multiple values with the same eval.
         # Evaluation is stored in pair[1] so find the best eval with max(path_eval_pairs, key=lambda x: x[1]) and add pair to 'best_pairs' if
@@ -227,7 +232,6 @@ class TensorBoard(chess.Board):
 
         return torch.tensor(combined)
 
-    
     def fen_to_number(self, char: str):
         """
         Converts a fen value e.g [P, R, N, Q] into my number representation e.g [1, 4, 2, 5]
