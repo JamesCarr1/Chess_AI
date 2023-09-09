@@ -3,6 +3,7 @@ import torch
 import random
 
 import variables
+import model_builder
 
 class MoveTree():
     """A tree containing all possible moves up to a certain depth
@@ -177,17 +178,6 @@ class ChessPlayer():
 
         return path, eval
 
-class TestModel(torch.nn.Module):
-    """
-    Test model to test if a game can actually be played.
-    """
-    def __init__(self):
-        super().__init__()
-
-    def forward(self, path):
-        # Just randomly chooses a move
-        return random.randint(0, 100)
-
 class TensorBoard(chess.Board):
     """
     Extension of chess.Board class that also has the capability of converting the current position to a tensor.
@@ -274,8 +264,8 @@ def play_game(model, base_model, depth):
     game = ChessGame()
 
     # Setup players
-    white_model = TestModel()
-    black_model = TestModel()
+    white_model = model
+    black_model = base_model
 
     white = ChessPlayer(white_model, 0, game)
     black = ChessPlayer(black_model, 1, game)
@@ -288,27 +278,38 @@ def play_game(model, base_model, depth):
         # Print the moves
         print(f'{i+1}. {white_path[1]} ({white_eval})  {black_path[1]} ({black_eval})')
 
+def play_against_model(model, depth):
+    """
+    Play a game against a model.
+
+    args:
+        depth: how far the model searches to evaluate positions
+    returns:
+        game_moves: a movetext including all moves
+    """
+
+    # Setup game board
+    game = ChessGame()
+
+    # Setup opponent
+    opponent = ChessPlayer(model, 0, game)
+
+    for i in range(10):
+        # Opponent makes a move
+        white_path, white_eval = opponent.choose_move(depth=1)
+
+        # Now user makes a move
+        move = input(f"Opponent played {white_path[1]} with eval={white_eval}. Choose your move: ")
+
+        # Make your move
+        game.current_position.push_san(move)
+
+        # Print move info
+        print(f'{i+1}. {white_path[1]} ({white_eval}) {move}')
+
 if __name__ == '__main__':
-    #play_game(1, 1, 1)
-    """
-    game = chess.Board()
-    moves_tree = MoveTree('Start')
-    for move in list(game.legal_moves):
-        moves_tree.add_node(move)
-    
-    for i, node in enumerate(moves_tree.nodes):
-        # Move game forward by step
-        game.push(node.move)
-        # Calculate all legal moves and append to tree
-        for new_move in list(game.legal_moves):
-            moves_tree.nodes[i].add_node(new_move)
-        # Return back to original position
-        game.pop()
-    
-    print(moves_tree.nodes[0].nodes[1].print_path())
-    """
 
-    #play_game(1, 1, 1)
+    base_model = model_builder.BaseModel(variables.material_values)
 
-    example = TensorBoard()
-    example.as_tensor()
+    play_against_model(base_model, depth=1)
+

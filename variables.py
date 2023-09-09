@@ -35,3 +35,12 @@ file_to_number = {'a': 1,
                   'f': 6,
                   'g': 7,
                   'h': 8}
+
+# Translates my integer representation to piece values
+material_values = {1: 1, -1: -1, # pawns are worth 1
+                   2: 3, -2: -3, # knights are worth 3
+                   3: 3, -3: -3, # bishops are worth 3
+                   4: 5, -4: -5, # rooks are worth 5
+                   5: 9, -5: -9, # queens are worth 9
+                   6: 0, -6: 0, # kings are not counted
+                   0: 0} # Empty square is worth nothing
