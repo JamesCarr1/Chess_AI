@@ -82,7 +82,7 @@ class ChessDB():
         # Now format columns
         data['Result'] = self.format_results_column(data['Result'].to_numpy())
         data = data[~self.find_evals_mask(data['AN'])] # Finds a mask of all rows with stockfish evals, and removes them
-        data['AN'] = [map(self.convert_movetext_to_list, data['AN'].to_numpy())]
+        data['AN'] = list(map(self.convert_movetext_to_list, data['AN'].to_numpy()))
         
         # And save
         data.to_csv(save_path)
@@ -91,7 +91,7 @@ class ChessDB():
 
     def format_results_column(self, results):
         # Converts all string type results to a multiclass vector representation
-        return [map(self.convert_str_result_to_multiclass, results)]
+        return list(map(self.convert_str_result_to_multiclass, results))
 
     def convert_str_result_to_multiclass(self, result):
         """

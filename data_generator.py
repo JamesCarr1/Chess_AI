@@ -20,6 +20,10 @@ class MoveTree():
 
     def add_node(self, move):
         self.next_moves.append(MoveTree(move, parent=self))
+
+    def add_nodes(self, moves):
+        # Appends multiple nodes using map()
+        self.next_moves += list(map(lambda move: MoveTree(move, parent=self), moves))
     
     def __repr__(self):
         return f"MoveTree({self.move}): {self.next_moves}"
@@ -59,8 +63,7 @@ class ChessGame():
 
         if depth > 0:
             # Find all the legal moves at this level and append to nodes
-            for move in [self.current_position.legal_moves]:
-                tree.add_node(move)
+            tree.add_nodes(list(self.current_position.legal_moves))
             # Now progress to next level and cycle through each node at the current level and find new nodes a level deeper
             for new_tree in tree.next_moves:
                 self.current_position.push(new_tree.move) # progress to next move
@@ -197,7 +200,7 @@ class TensorBoard(chess.Board):
         for i in range(8):
             board_position = board_position.replace(str(i+1), ''.join(['0' for _ in range(i+1)])) # Replace all integers with that many 0s
         board_position = board_position.replace('/', '') # remove the slashes from board_position
-        board_position = [map(self.fen_to_number, board_position)] # now convert FEN letters to my integer representation (see variables.py)
+        board_position = list(map(self.fen_to_number, board_position)) # now convert FEN letters to my integer representation (see variables.py)
 
         ### Format the turn
         turn = [0 if turn == 'w' else 0]
@@ -306,5 +309,20 @@ if __name__ == '__main__':
 
     base_model = model_builder.BaseModel(variables.material_values)
 
-    play_against_model(base_model, depth=1)
+    
+    #play_against_model(base_model, depth=2)
+
+    
+    # Setup instances
+    game = ChessGame()
+    player = ChessPlayer(base_model, 0, game)
+
+    # Make evaluation
+    white_path, white_eval = player.choose_move(depth=2)
+
+    # Print evaluation
+    print(f"Opponent played {white_path[1]} with eval={white_eval}.")
+    
+
+
 
