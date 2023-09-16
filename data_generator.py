@@ -22,8 +22,8 @@ class MoveTree():
         self.next_moves.append(MoveTree(move, parent=self))
 
     def add_nodes(self, moves):
-        # Appends multiple nodes using map()
-        self.next_moves += list(map(lambda move: MoveTree(move, parent=self), moves))
+        # Appends multiple nodes using list comp
+        self.next_moves += [MoveTree(move, parent=self) for move in moves]
     
     def __repr__(self):
         return f"MoveTree({self.move}): {self.next_moves}"
@@ -137,7 +137,8 @@ class ChessGame():
         ### Now choose (all of) the best pairs. Need to use list comprehension as there could be multiple values with the same eval.
         # Evaluation is stored in pair[1] so find the best eval with max(path_eval_pairs, key=lambda x: x[1]) and add pair to 'best_pairs' if
         # eval (i.e pair[1]) is the same value.
-        best_pairs = [pair for pair in path_eval_pairs if pair[1] == max_min[colour](path_eval_pairs, key=lambda x: x[1])[1]]
+        max_min_eval = max_min[colour](path_eval_pairs, key=lambda x: x[1])[1]
+        best_pairs = [pair for pair in path_eval_pairs if pair[1] == max_min_eval]
 
         return best_pairs
 
