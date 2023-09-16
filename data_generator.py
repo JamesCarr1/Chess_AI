@@ -59,7 +59,7 @@ class ChessGame():
 
         if depth > 0:
             # Find all the legal moves at this level and append to nodes
-            for move in list(self.current_position.legal_moves):
+            for move in [self.current_position.legal_moves]:
                 tree.add_node(move)
             # Now progress to next level and cycle through each node at the current level and find new nodes a level deeper
             for new_tree in tree.next_moves:
@@ -196,8 +196,8 @@ class TensorBoard(chess.Board):
         ### Format the board position
         for i in range(8):
             board_position = board_position.replace(str(i+1), ''.join(['0' for _ in range(i+1)])) # Replace all integers with that many 0s
-        board_position = list(board_position.replace('/', '')) # remove the slashes from board_position
-        board_position = list(map(self.fen_to_number, board_position)) # now convert FEN letters to my integer representation (see variables.py)
+        board_position = board_position.replace('/', '') # remove the slashes from board_position
+        board_position = [map(self.fen_to_number, board_position)] # now convert FEN letters to my integer representation (see variables.py)
 
         ### Format the turn
         turn = [0 if turn == 'w' else 0]
