@@ -67,8 +67,7 @@ class ChessGame():
             # Now progress to next level and cycle through each node at the current level and find new nodes a level deeper
             for new_tree in tree.next_moves:
                 self.current_position.push(new_tree.move) # progress to next move
-                if self.current_position.outcome() is None: # If game is over, don't try to find any more moves
-                    self.find_possible_moves(depth - 0.5, new_tree) # find valid moves. One move is 'half a depth' so subtract 0.5
+                self.find_possible_moves(depth - 0.5, new_tree)
                 self.current_position.pop() # move back to original position
         
         return tree
@@ -290,7 +289,7 @@ if __name__ == '__main__':
     player = ChessPlayer(base_model, 0, game)
 
     # Make evaluation
-    white_path, white_eval = player.choose_move(depth=2)
+    white_path, white_eval = player.choose_move(depth=3)
 
     # Print evaluation
     print(f"Opponent played {white_path[1]} with eval={white_eval}.")

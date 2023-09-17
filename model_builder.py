@@ -13,14 +13,20 @@ class BaseModel(torch.nn.Module):
         self.material_values = material_values
 
     def forward(self, board):
-        # Take the first 64 elements (i.e the board layout) and convert each piece to it's material value. 
-        # Have to convert to string before tensor else torch cannot infer dtype
-        evaluation = torch.tensor(list(map(lambda piece: self.material_values[piece.item()], board[0:64])))
+        # Take the first 64 elements (i.e the board layout) and convert each piece to it's material value.
 
-        # And sum all elements in the tensor
-        evaluation = torch.sum(evaluation)
+        # Alterative, slightly slower method
+        #evaluation = [self.material_values[piece.item()] for piece in board[0:64]]
+        #evaluation = sum(evaluation)
+
+        evaluation = 0
+        for piece in board[0:64]:
+            evaluation += self.material_values[piece.item()]
         
-        return evaluation.item()
+        return evaluation
+
+    def calc_piece_value(self, piece):
+        return self.material_values[piece.item()]
 
 class RandomModel(torch.nn.Module):
     """
