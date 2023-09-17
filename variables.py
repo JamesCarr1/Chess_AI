@@ -1,4 +1,5 @@
 import torch
+import chess
 
 # White:            Black       
 # - Pawn: 1         - Pawn: -1
@@ -44,3 +45,12 @@ material_values = {1: 1, -1: -1, # pawns are worth 1
                    5: 9, -5: -9, # queens are worth 9
                    6: 0, -6: 0, # kings are not counted
                    0: 0} # Empty square is worth nothing
+
+pieces = [chess.PAWN,
+        chess.KNIGHT,
+        chess.BISHOP,
+        chess.ROOK,
+        chess.QUEEN,
+        chess.KING]
+colours = [(chess.WHITE, 1),
+        (chess.BLACK, -1)]
