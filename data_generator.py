@@ -1,9 +1,13 @@
 import chess
+import my_chess
 import torch
 import random
+import numpy as np
 
 import variables
 import model_builder
+
+from operator import add
 
 class MoveTree():
     """A tree containing all possible moves up to a certain depth
@@ -53,7 +57,7 @@ class ChessGame():
         moves_tree: A MoveTree() instance that contains all of the possible moves up to a certain depth.
     """
     def __init__(self):
-        self.current_position = TensorBoard() # initialise with default position
+        self.current_position = my_chess.TensorBoard() # initialise with default position
         self.moves_tree = MoveTree('Start') # Just a placeholder
 
     def find_possible_moves(self, depth, tree):
@@ -176,46 +180,6 @@ class ChessPlayer():
 
         return path, eval
 
-class TensorBoard(chess.Board):
-    """
-    Extension of chess.Board class that also has the capability of converting the current position to a tensor.
-    """
-    def __init__(self):
-        super().__init__()
-
-    def as_tensor(self):
-        """
-        Returns a flattened tensor representation of the board.
-
-        returns:
-            board_as_tensor: a 70 length vector. Indices 0-63 correspond to the current board position.
-                             index 64 corresponds to the turn (i.e white=0, black=1)
-                             index 65, 66, 67 and 68 indicate whether white and black can castle king and queenside respectively, 1 for true, 0 for false.
-                             index 69 indicates if en-passant is legal and if so, which square. -1 indicates no en-passant possible 
-        """
-        board_info = [0] * 70
-
-        ### Format the board position
-        for colour, multiplier in variables.colours:
-            for i, piece in enumerate(variables.pieces):
-                for index in list(self.pieces(piece, colour)):
-                    # If there is a piece, adjust the relevant element of the list
-                    board_info[index] = (i + 1) * multiplier
-        
-        ### Format the turn
-        board_info[64] = self.turn # need to multiply by 1 as it returns a bool
-
-        ### Format the castling rights
-        for i, (colour, multiplier) in enumerate(variables.colours):
-            board_info[65 + 2 * i] = self.has_kingside_castling_rights(colour)
-            board_info[65 + 2 * i + 1] = self.has_queenside_castling_rights(colour)
-        
-        ### Format en-passant
-        # Board.ep_square just returns the index of the en-passant square
-        board_info[69] = -1 if self.ep_square is None else self.ep_square
-
-        return torch.tensor(board_info)
-
 # Generates games given two models
 
 def play_game(model, base_model, depth):
@@ -289,7 +253,7 @@ if __name__ == '__main__':
     player = ChessPlayer(base_model, 0, game)
 
     # Make evaluation
-    white_path, white_eval = player.choose_move(depth=3)
+    white_path, white_eval = player.choose_move(depth=2)
 
     # Print evaluation
     print(f"Opponent played {white_path[1]} with eval={white_eval}.")

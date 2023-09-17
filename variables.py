@@ -54,3 +54,16 @@ pieces = [chess.PAWN,
         chess.KING]
 colours = [(chess.WHITE, 1),
         (chess.BLACK, -1)]
+
+piece_types = [(chess.PAWN, chess.WHITE, 1),
+               (chess.PAWN, chess.BLACK, -1),
+               (chess.KNIGHT, chess.WHITE, 1),
+               (chess.KNIGHT, chess.BLACK, -1),
+               (chess.BISHOP, chess.WHITE, 1),
+               (chess.BISHOP, chess.BLACK, -1),
+               (chess.ROOK, chess.WHITE, 1),
+               (chess.ROOK, chess.BLACK, -1),
+               (chess.QUEEN, chess.WHITE, 1),
+               (chess.QUEEN, chess.BLACK, -1),
+               (chess.KING, chess.WHITE, 1),
+               (chess.KING, chess.BLACK, -1)]
