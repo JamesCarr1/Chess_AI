@@ -67,3 +67,13 @@ piece_types = [(chess.PAWN, chess.WHITE, 1),
                (chess.QUEEN, chess.BLACK, -1),
                (chess.KING, chess.WHITE, 1),
                (chess.KING, chess.BLACK, -1)]
+
+base_board = [4., 2., 3., 5., 6., 3., 2., 4., # Piece data
+              1., 1., 1., 1., 1., 1., 1., 1.,
+              0., 0., 0., 0., 0., 0., 0., 0.,
+              0., 0., 0., 0., 0., 0., 0., 0.,
+              0., 0., 0., 0., 0., 0., 0., 0.,
+              0., 0., 0., 0., 0., 0., 0., 0.,
+              -1., -1., -1., -1., -1., -1., -1., -1.,
+              -4., -2., -3., -5., -6., -3., -2., -4.,
+              1., 1., 1., 1., 1., -1.] # Extra data - White kingside castling, queenside, black kingside, queenside, en-passant square
