@@ -76,4 +76,4 @@ base_board = [4., 2., 3., 5., 6., 3., 2., 4., # Piece data
               0., 0., 0., 0., 0., 0., 0., 0.,
               -1., -1., -1., -1., -1., -1., -1., -1.,
               -4., -2., -3., -5., -6., -3., -2., -4.,
-              1., 1., 1., 1., 1., -1.] # Extra data - White kingside castling, queenside, black kingside, queenside, en-passant square
+              1., -1.] # Extra data - turn, en-passant square

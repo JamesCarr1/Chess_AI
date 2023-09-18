@@ -1,8 +1,12 @@
 import torch
 import random
 
+import numpy as np
+
 import variables
 import data_generator
+
+from numba import njit
 
 class BaseModel(torch.nn.Module):
     """
@@ -19,14 +23,36 @@ class BaseModel(torch.nn.Module):
         #evaluation = [self.material_values[piece.item()] for piece in board[0:64]]
         #evaluation = sum(evaluation)
 
-        evaluation = 0
-        for piece in board[0:64]:
-            evaluation += self.material_values[piece.item()]
-        
-        return evaluation
+        return base_model_forward(np.array(board[0:64]))
 
     def calc_piece_value(self, piece):
         return self.material_values[piece.item()]
+
+@njit
+def base_model_forward(board: np.array):
+    """
+    forward() function of base_model that can be jit compiled with Numba
+    """
+    evaluation = 0
+    for piece in board:
+        # Calculate colour
+        if piece >= 0:
+            colour_multiplier = 1
+        else:
+            colour_multiplier = -1
+        
+        if piece == 0:
+            evaluation += 0
+        elif abs(piece) == 1: # i.e a pawn
+            evaluation += 1 * colour_multiplier
+        elif abs(piece) == 2 or 3: # i.e a knight or bishop
+            evaluation += 3 * colour_multiplier
+        elif abs(piece) == 4: # i.e a rook
+            evaluation += 5 * colour_multiplier
+        elif abs(piece) == 5: # i.e a queen
+            evalutation += 9 * colour_multiplier
+
+    return evaluation
 
 class RandomModel(torch.nn.Module):
     """

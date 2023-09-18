@@ -252,7 +252,7 @@ if __name__ == '__main__':
     player = ChessPlayer(base_model, 0, game)
 
     # Make evaluation
-    white_path, white_eval = player.choose_move(depth=2)
+    white_path, white_eval = player.choose_move(depth=3)
 
     # Print evaluation
     print(f"Opponent played {white_path[1]} with eval={white_eval}.")

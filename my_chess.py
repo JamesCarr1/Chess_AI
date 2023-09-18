@@ -48,16 +48,12 @@ class TensorBoard(chess.Board):
         # Update the array with the move
         self.as_array[move.to_square] = self.as_array[move.from_square]
         self.as_array[move.from_square] = 0
-
+        
         # Check the other conditions
         self.as_array[64] = 1 - self.as_array[64] # Is now oter player's turn
-        ### Format the castling rights
-        for i, (colour, multiplier) in enumerate(variables.colours):
-            self.as_array[65 + 2 * i] = self.has_kingside_castling_rights(colour)
-            self.as_array[65 + 2 * i + 1] = self.has_queenside_castling_rights(colour)
         ### Format the en-passant
-        self.as_array[69] = -1 if self.ep_square is None else self.ep_square
-    
+        self.as_array[65] = -1 if self.ep_square is None else self.ep_square
+
     """
     def as_tensor(self):
         '''
