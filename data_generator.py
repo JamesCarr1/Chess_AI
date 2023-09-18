@@ -121,7 +121,6 @@ class ChessGame():
         
         ### Now cycle through each child tree of tree
         for child_tree in tree.next_moves:
-
             self.current_position.push(child_tree.move) # make the move (required for evaluation)
 
             # If the child is a leaf, add it's path
