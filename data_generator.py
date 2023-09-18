@@ -7,7 +7,7 @@ import numpy as np
 import variables
 import model_builder
 
-from operator import add
+from operator import add, ge, le
 
 class MoveTree():
     """A tree containing all possible moves up to a certain depth
@@ -137,9 +137,9 @@ class ChessGame():
 
             self.current_position.pop() # unmake the move (required for evaluation)
         
-        ### Now choose (all of) the best pairs. Need to use list comprehension as there could be multiple values with the same eval.
-        # Evaluation is stored in pair[1] so find the best eval with max(path_eval_pairs, key=lambda x: x[1]) and add pair to 'best_pairs' if
-        # eval (i.e pair[1]) is the same value.
+        ### Now choose (all of) the best pairs. Need to use list comprehension as there could be multiple values with the same evaluation.
+        # Evaluation is stored in pair[1] so find the best evaluation with max(path_eval_pairs, key=lambda x: x[1]) and add pair to 'best_pairs' if
+        # evaluation (i.e pair[1]) is the same value.
         max_min_eval = max_min[colour](path_eval_pairs, key=lambda x: x[1])[1]
         best_pairs = [pair for pair in path_eval_pairs if pair[1] == max_min_eval]
 
@@ -173,12 +173,12 @@ class ChessPlayer():
         best_path_eval_pairs = self.game.get_best_evals(self.game.moves_tree, self.model, self.colour)
 
         ### best_path_eval_pairs can contain multiple pairs, so randomly choose one
-        path, eval = random.choice(best_path_eval_pairs)
+        path, evaluation = random.choice(best_path_eval_pairs)
 
         ### Then choose the first move from the pair and push it
         self.game.current_position.push(path[1]) # Remembering the first element of path is 'Start'
 
-        return path, eval
+        return path, evaluation
 
 class ChessGameV2():
     """
@@ -192,8 +192,8 @@ class ChessGameV2():
         self.current_position = my_chess.TensorBoard() # initialise with default position
         self.moves_tree = MoveTree('Start') # Just a placeholder
     
-    def get_best_evals(self, tree, depth, model, colour, max_min=[max, min], prev_eval=0):
-        """Searches and builds each tree and finds eval. If it is a eval < previous eval, discard the move.
+    def get_best_evals(self, tree, depth, model, colour, max_min=[max, min], ge_le=[ge, le], prev_eval=0):
+        """Searches and builds each tree and finds evaluation. If it is a evaluation < previous evaluation, discard the move.
         Repeat until the best evaluation is returned.
 
         args:
@@ -211,41 +211,30 @@ class ChessGameV2():
             # If tree is not a leaf, find evaluations and add all positive evaluations to tree
             if bool(self.current_position.legal_moves):
                 # Now find all evaluations
-                good_moves = []
-                evals = []
+                path_eval_pairs = []
+                current_best_eval = -500 # arbitrarily low number
                 for move in self.current_position.legal_moves:
                     self.current_position.push(move) # make the move
-                    eval = model(self.current_position.as_tensor()) # evaluate the move
-                    self.current_position.pop() # unmake the move
-                    if eval >= prev_eval: #### TEST WHICH IS FASTER, add_node or add_nodes
+                    evaluation = model(self.current_position.as_tensor()) # evaluate the move
+                    if ge_le[colour](evaluation, prev_eval): # i.e choose the 'best'
                         # If move is valid, search that tree
-                        good_moves.append(move)
-                        evals.append(eval)
+                        tree.add_node(move)
 
-                tree.add_nodes(good_moves) # Add nodes to list
+                        path_eval_pairs = self.search_subtree(tree, path_eval_pairs, model, depth, colour, max_min, evaluation)
+                    elif ge_le[colour](evaluation, current_best_eval): # Also check if it is better than the current best
+                        current_best_eval = evaluation # update evaluation
+                        current_best_move = move # save the move
+                    
+                    if not bool(tree.next_moves): # i.e if there are no positions better than prev_eval
+                        tree.add_node(move)
 
-                ### Now we have nodes for this tree, let's explore them
-                path_eval_pairs = []
-                for i, child_tree in enumerate(tree.next_moves):
-                    self.current_position.push(child_tree.move) # make the move (required for evaluation)
+                        path_eval_pairs = self.search_subtree(tree, path_eval_pairs, model, depth, colour, max_min, evaluation)
 
-                    # If the child is a leaf, add it's path
-                    if not bool(self.current_position.legal_moves):
-                        path = child_tree.get_path()
-                        path_eval_pairs.append((path, model(self.current_position.as_tensor()))) # add path and evaluation to list
-                    # If the child is not a leaf, now search through the child tree
-                    else:
-                        # get_best_evals returns a list, as multiple paths can give the same evaluation.
-                        # Even if it is just one pair, use a for loop to unpack
-                        # (1 - colour) as the next move will be the other colour's turn
-                        for pair in self.get_best_evals(child_tree, depth-0.5, model, 1-colour, max_min, prev_eval=evals[i]):
-                            path_eval_pairs.append(pair)
-
-                    self.current_position.pop() # unmake the move (required for evaluation)
+                    self.current_position.pop() # unmake the move
                 
-                ### Now choose (all of) the best pairs. Need to use list comprehension as there could be multiple values with the same eval.
-                # Evaluation is stored in pair[1] so find the best eval with max(path_eval_pairs, key=lambda x: x[1]) and add pair to 'best_pairs' if
-                # eval (i.e pair[1]) is the same value.
+                ### Now choose (all of) the best pairs. Need to use list comprehension as there could be multiple values with the same evaluation.
+                # Evaluation is stored in pair[1] so find the best evaluation with max(path_eval_pairs, key=lambda x: x[1]) and add pair to 'best_pairs' if
+                # evaluation (i.e pair[1]) is the same value.
                 max_min_eval = max_min[colour](path_eval_pairs, key=lambda x: x[1])[1]
                 best_pairs = [pair for pair in path_eval_pairs if pair[1] == max_min_eval]
 
@@ -256,7 +245,21 @@ class ChessGameV2():
             # Move has already been made
             return [[tree.path, model(self.current_position.as_tensor())]]
 
+    def search_subtree(self, tree, path_eval_pairs, model, depth, colour, max_min, evaluation):
+        # If the child is a leaf, add it's path
+        if not bool(self.current_position.legal_moves):
+            path = tree.next_moves[-1].get_path() # next_moves[-1] contains the tree just added
+            path_eval_pairs.append((path, model(self.current_position.as_tensor()))) # add path and evaluation to list
+        # If the child is not a leaf, now search through the child tree
+        else:
+            # get_best_evals returns a list, as multiple paths can give the same evaluation.
+            # Even if it is just one pair, use a for loop to unpack
+            # (1 - colour) as the next move will be the other colour's turn
+            for pair in self.get_best_evals(tree.next_moves[-1], depth-0.5, model, 1-colour, max_min, prev_eval=evaluation):
+                path_eval_pairs.append(pair)
 
+        return path_eval_pairs
+    
 class ChessPlayer2():
     def __init__(self, model, colour, game):
         self.model = model
@@ -274,12 +277,12 @@ class ChessPlayer2():
         best_path_eval_pairs = self.game.get_best_evals(self.game.moves_tree, depth, self.model, self.colour)
 
         ### best_path_eval_pairs can contain multiple pairs, so randomly choose one
-        path, eval = random.choice(best_path_eval_pairs)
+        path, evaluation = random.choice(best_path_eval_pairs)
 
         ### Then choose the first move from the pair and push it
         self.game.current_position.push(path[1]) # Remembering the first element of path is 'Start'
 
-        return path, eval
+        return path, evaluation
     
 # Generates games given two models
 
@@ -333,7 +336,7 @@ def play_against_model(model, depth):
         white_path, white_eval = opponent.choose_move(depth=1)
 
         # Now user makes a move
-        move = input(f"Opponent played {white_path[1]} with eval={white_eval}. Choose your move: ")
+        move = input(f"Opponent played {white_path[1]} with evaluation={white_eval}. Choose your move: ")
 
         # Make your move
         game.current_position.push_san(move)
@@ -357,7 +360,7 @@ if __name__ == '__main__':
     white_path, white_eval = player.choose_move(depth=3)
 
     # Print evaluation
-    print(f"Opponent played {white_path[1]} with eval={white_eval}.")
+    print(f"Opponent played {white_path[1]} with evaluation={white_eval}.")
     """
 
     # Setup instances
@@ -369,7 +372,7 @@ if __name__ == '__main__':
 
     # Print evaluation
     print(white_path)
-    print(f"Opponent played {white_path[1]} with eval={white_eval}.")
+    print(f"Opponent played {white_path[1]} with evaluation={white_eval}.")
 
 
     
